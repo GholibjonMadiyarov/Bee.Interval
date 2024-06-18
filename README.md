@@ -10,6 +10,7 @@ static void Main(string[] args)
 {
 	// 3 seconds
 	Interval.start(3, change);
+	//Interval.stop();
 }
 
 private void change()
