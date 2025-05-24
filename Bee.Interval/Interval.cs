@@ -1,92 +1,58 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Reflection;
 using System.Threading;
 
 namespace Bee.Interval
 {
     public class Interval
     {
-        SynchronizationContext synchronizationContext;
+        private bool active;
+        private int seconds;
 
-        private static bool staticIsStart = false;
-        private static int staticCount = 0;
+        private Thread t;
 
-        private static bool isStart = false;
-        private static int count = 0;
-
-        public Interval(SynchronizationContext synchronizationContext = null) 
+        public Interval()
         {
-            this.synchronizationContext = synchronizationContext;
+            this.active = false;
+
+            //30 seconds
+            this.seconds = 30;
         }
 
-        public static void start(int seconds = 15, Action callback = null, SynchronizationContext synchronizationContext = null)
+        public void version(string path = null)
         {
-            if (seconds <= 0)
-                seconds = 15;
-            
-            staticIsStart = true;
-            staticCount = seconds;
-
-            var t = new Thread(() =>
+            if (path != null)
             {
-                while (staticIsStart) 
-                { 
-                    if (staticCount == seconds)
-                    {
-                        staticCount = 0;
-
-                        if (callback != null)
-                        {
-                            if (synchronizationContext != null)
-                            {
-                                synchronizationContext.Post(_ => callback(), null);
-                            }
-                            else
-                            {
-                                callback();
-                            }
-                        }
-                    }
-
-                    Thread.Sleep(1000);
-                    staticCount++;
-                }
-            });
-
-            t.IsBackground = true;
-            t.Start();
+                Log.info(path, "Version:" + Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString());
+            }
         }
 
-        public void begin(int seconds = 15, Action callback = null)
+        public void start(int seconds = 30, Action callback = null)
         {
-            if (seconds <= 0)
-                seconds = 15;
+            int i = seconds;
 
-            isStart = true;
-            count = seconds;
+            this.seconds = seconds;
 
-            var t = new Thread(() =>
+            this.active = true;
+
+            t = new Thread(() =>
             {
-                while (isStart)
+                while (active) 
                 {
-                    if (count == seconds)
-                    {
-                        count = 0;
-
-                        if (callback != null)
-                        {
-                            if (this.synchronizationContext != null)
-                            {
-                                synchronizationContext.Post(_ => callback(), null);
-                            }
-                            else
-                            {
-                                callback();
-                            }
-                        }
+                    while (i > 0)
+                    { 
+                        Thread.Sleep(1000);
+                        i--;
                     }
 
-                    Thread.Sleep(1000);
-                    count++;
+                    i = seconds;
+
+                    if (active == false)
+                        return;
+
+                    if (callback != null)
+                        callback();
                 }
             });
 
@@ -94,14 +60,10 @@ namespace Bee.Interval
             t.Start();
         }
 
-        public static void stop()
+        public void stop()
         {
-            staticIsStart = false;
-        }
-
-        public void end()
-        {
-            isStart = false;
+            this.active = false;
+            this.seconds = 0;
         }
     }
 }
